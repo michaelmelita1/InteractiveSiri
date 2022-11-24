@@ -6,3 +6,8 @@
     return NO;
 }
 %end
+%hook SBAssistantActiveInterfaceOrientationWindow
+-(BOOL)touchesPassThroughToSpringBoard {
+    return YES;
+}
+%end
