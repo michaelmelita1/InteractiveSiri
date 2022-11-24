@@ -11,3 +11,9 @@
     return YES;
 }
 %end
+%hook SBAssistantWindow
+-(BOOL)touchesPassThroughToSpringBoard {
+    return YES;
+}
+%end
+
