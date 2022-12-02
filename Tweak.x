@@ -11,3 +11,8 @@
 	return 2;
 }
 %end
+%hook SiriUIBackgroundBlurViewController
+-(BOOL)backgroundBlurIsVisible {
+    return NO;
+}
+%end
