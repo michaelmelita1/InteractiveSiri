@@ -6,14 +6,8 @@
     return NO;
 }
 %end
-%hook SBAssistantActiveInterfaceOrientationWindow
--(BOOL)touchesPassThroughToSpringBoard {
-    return YES;
+%hook SBPlatformController
+-(long long)medusaCapabilities {
+	return 2;
 }
 %end
-%hook SBAssistantWindow
--(BOOL)touchesPassThroughToSpringBoard {
-    return YES;
-}
-%end
-
