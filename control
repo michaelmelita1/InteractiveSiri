@@ -1,5 +1,5 @@
 Package: com.michaelmelita1.interactivesiri
-Version: 0.0.1
+Version: 0.0.2
 Architecture: iphoneos-arm
 Maintainer: Michael Melita
 Depends: mobilesubstrate, firmware (>= 14.0)
