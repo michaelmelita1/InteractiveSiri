@@ -15,3 +15,8 @@
     return YES;
 }
 %end
+%hook SiriUIConfiguration 
+-(long long)siriViewMode {
+    return YES;
+}
+%end
