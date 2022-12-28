@@ -5,9 +5,13 @@
 -(BOOL)shouldDismissForSwipesOutsideContent {
     return NO;
 }
-%end
-%hook SiriUIBackgroundBlurViewController
--(BOOL)backgroundBlurIsVisible {
-    return NO;
+-(BOOL)showAppsBehindSiri {
+    return YES;
+}
+-(BOOL)shouldPassTapsThrough {
+    return YES;
+}
+-(BOOL)shouldPassTouchesThroughToSpringBoard {
+    return YES;
 }
 %end
