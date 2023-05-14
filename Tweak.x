@@ -8,15 +8,19 @@
 -(BOOL)showAppsBehindSiri {
     return YES;
 }
--(BOOL)shouldPassTapsThrough {
-    return YES;
-}
--(BOOL)shouldPassTouchesThroughToSpringBoard {
-    return YES;
+%hook SiriPresentationViewController
+-(long long)currentViewMode {
+    return 2;
 }
 %end
 %hook SiriUIConfiguration 
 -(long long)siriViewMode {
+    return 1;
+}
+%end
+
+%hook AFPreferences
+-(BOOL)debugButtonIsEnabled {
     return YES;
 }
 %end
