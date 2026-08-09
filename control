@@ -2,7 +2,7 @@ Package: com.michaelmelita1.interactivesiri
 Version: 0.2
 Architecture: iphoneos-arm64
 Maintainer: michaelmelita1
-Depends: mobilesubstrate, firmware (>= 14.0)
+Depends: mobilesubstrate, firmware (>= 15.0)
 Section: Tweaks
 Description: InteractiveSiri
 Author: michaelmelita1

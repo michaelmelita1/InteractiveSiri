@@ -22,9 +22,6 @@
 -(BOOL)shouldDismissForSwipesOutsideContent {
     return NO;
 }
--(BOOL)showAppsBehindSiri {
-    return YES;
-}
 %end
 
 %hook SiriPresentationViewController
@@ -36,12 +33,6 @@
 %hook SiriUIConfiguration
 -(long long)siriViewMode {
     return 1;
-}
-%end
-
-%hook AFPreferences
--(BOOL)debugButtonIsEnabled {
-    return YES;
 }
 %end
 
