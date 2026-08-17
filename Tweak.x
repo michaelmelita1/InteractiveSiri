@@ -1,18 +1,11 @@
 #import <UIKit/UIKit.h>
-#import <objc/runtime.h>
-
-#define kWidth  ([UIScreen mainScreen].bounds.size.width)
-#define kHeight ([UIScreen mainScreen].bounds.size.height)
 
 @interface SBAssistantWindow : UIWindow
+- (void)setTouchesPassThroughToSpringBoard:(BOOL)value;
 @end
 
 @interface SBAssistantActiveInterfaceOrientationWindow : UIWindow
-@end
-
-@interface UIStatusBar : UIView
-@end
-@interface _UIStatusBar : UIView
+- (void)setTouchesPassThroughToSpringBoard:(BOOL)value;
 @end
 
 %hook SiriPresentationSpringBoardMainScreenViewController
@@ -24,76 +17,53 @@
 }
 %end
 
-%hook SiriPresentationViewController
--(long long)currentViewMode {
-    return 1;
-}
-%end
-
-%hook SiriUIConfiguration
--(long long)siriViewMode {
-    return 1;
-}
-%end
-
 %hook SBAssistantWindow
--(void)becomeKeyWindow {
-    %orig;
-    CGFloat const side = 175;
-    CGRect small = CGRectMake((kWidth - side) / 2.0, kHeight - side - 10, side, side);
-    if (!CGRectEqualToRect(self.frame, small)) {
-        self.frame = small;
-        self.clipsToBounds = YES;
-        self.layer.cornerRadius = side / 2.0;
-        if (self.subviews.count > 0) {
-            UIView *content = self.subviews[0];
-            content.frame = self.bounds;
-            content.layer.cornerRadius = side / 2.0;
-            content.clipsToBounds = YES;
-            [content setNeedsLayout];
-            [content layoutIfNeeded];
-        }
-    }
+-(void)setTouchesPassThroughToSpringBoard:(BOOL)value {
+    %orig(YES);
 }
 %end
 
 %hook SBAssistantActiveInterfaceOrientationWindow
--(void)becomeKeyWindow {
-    %orig;
-    CGFloat const side = 175;
-    CGRect small = CGRectMake((kWidth - side) / 2.0, kHeight - side - 10, side, side);
-    if (!CGRectEqualToRect(self.frame, small)) {
-        self.frame = small;
-        self.clipsToBounds = YES;
-        self.layer.cornerRadius = side / 2.0;
-        if (self.subviews.count > 0) {
-            UIView *content = self.subviews[0];
-            content.frame = self.bounds;
-            content.layer.cornerRadius = side / 2.0;
-            content.clipsToBounds = YES;
-            [content setNeedsLayout];
-            [content layoutIfNeeded];
+-(void)setTouchesPassThroughToSpringBoard:(BOOL)value {
+    %orig(YES);
+}
+%end
+
+@interface AFUISiriCompactDimmingView : UIView
+@end
+
+%hook AFUISiriCompactDimmingView
+-(void)setFrame:(CGRect)frame {
+    %orig(CGRectMake(0, 0, 0, 0));
+}
+%end
+
+@interface _UIContextLayerHostView : UIView
+@end
+
+%hook _UIContextLayerHostView
+-(void)setFrame:(CGRect)frame {
+    UIView *ancestor = self.superview;
+    BOOL isSiriScene = NO;
+    int depth = 0;
+    while (ancestor && depth < 5) {
+        if ([ancestor respondsToSelector:@selector(description)]) {
+            NSString *desc = [ancestor description];
+            if ([desc rangeOfString:@"SiriHostedScene"].location != NSNotFound) {
+                isSiriScene = YES;
+                break;
+            }
         }
+        ancestor = ancestor.superview;
+        depth++;
     }
-}
-%end
-
-%hook UIStatusBar
--(void)didMoveToWindow {
-    %orig;
-    if ([self.window isMemberOfClass:objc_getClass("SBAssistantWindow")] ||
-        [self.window isMemberOfClass:objc_getClass("SBAssistantActiveInterfaceOrientationWindow")]) {
-        [self removeFromSuperview];
-    }
-}
-%end
-
-%hook _UIStatusBar
--(void)didMoveToWindow {
-    %orig;
-    if ([self.window isMemberOfClass:objc_getClass("SBAssistantWindow")] ||
-        [self.window isMemberOfClass:objc_getClass("SBAssistantActiveInterfaceOrientationWindow")]) {
-        [self removeFromSuperview];
+    if (isSiriScene) {
+        CGFloat const screenWidth = [UIScreen mainScreen].bounds.size.width;
+        CGFloat const proportion = 140.0 / 667.0;
+        CGFloat const height = frame.size.height * proportion;
+        %orig(CGRectMake(0, 0, screenWidth, height));
+    } else {
+        %orig(frame);
     }
 }
 %end
