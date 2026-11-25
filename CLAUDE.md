@@ -18,3 +18,10 @@ Findings (iPhone 7 15.8.8 cache):
 DIAG_LOG logs callers (image+offset) and hooks the Siri methods above by name (type-encoding based loggers).
 Logs: InteractiveSiri-<process>-diag.txt in /var/mobile/Library/Caches, /var/mobile/Media, /var/tmp.
 Not yet done: iPad cache comparison (disk space on device VM is tight), iOS 16 check.
+
+0.4.0: user confirmed iPad mode works great on the iPhone 7. Control file from the user (Version 0.4.0, Architecture iphoneos-arm64,
+Maintainer/Author michaelmelita1, Sileodepiction). ARCHS = arm64 arm64e; arm64e gets the same constant-string isa signing
+constructor as ExposureControl (no-op unless the system signs isa). arm64e devices (XS+) and iOS 16+ untested.
+Release builds: main + experiments-diag (EXP=PERSISTENT DIAG=DIAG_LOG) + source zip.
+Removed the constant-string isa workaround (user request): arm64e must be built on the Mac with Xcode.
+User wants only the iPad version: persistent_phone experiment removed; build.sh makes just the main package. (DIAG=DIAG_LOG still available.)

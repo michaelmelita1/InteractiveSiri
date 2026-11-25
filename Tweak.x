@@ -13,9 +13,6 @@
 //   SiriUI       -[SiriUINavigationContentViewController hasContentAtPoint:] (which touches Siri keeps)
 // (Apple's unfinished phone version is the feature flag SiriUI/persistent_phone, off on every device.)
 // So answer YES from SiriUIDeviceIsPad in SpringBoard and Siri. Nothing else in these processes calls it.
-//
-// Experiment (EXP=PERSISTENT): instead of the iPad layout, turn on Apple's persistent_phone flag
-// (touches pass through, Siri stays, but the orb stays in the middle like a phone).
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
@@ -24,40 +21,7 @@
 #import <dlfcn.h>
 #import <os/log.h>
 #import <substrate.h>
-#import <mach-o/getsect.h>
-#import <mach/mach.h>
 
-#pragma mark - arm64e: sign our constant strings' isa (iOS 18)
-// On newer arm64e iOS, libobjc authenticates every object's isa (key DA, discriminator = the isa field's address
-// blended with 0x6AE1). Theos' Linux clang leaves @"..." constants' isa unsigned, which crashed ExposureControl on
-// iOS 18 at load. Sign ours the way Foundation's own constant strings are signed, only if they are (checked by
-// recomputing Foundation's signature), so iOS 15-16 and arm64 are untouched.
-#if __has_feature(ptrauth_intrinsics)
-#include <ptrauth.h>
-extern NSString *const NSFileTypeDirectory;
-static void __attribute__((constructor(101))) SignConstantStringISAs(void) {
-	void **sysISA = (void **)(__bridge void *)NSFileTypeDirectory;
-	void *sys = *sysISA, *raw = ptrauth_strip(sys, ptrauth_key_asda);
-	if (sys == raw) return;
-	if (ptrauth_sign_unauthenticated(raw, ptrauth_key_asda, ptrauth_blend_discriminator(sysISA, 0x6AE1)) != sys) return;
-	Dl_info info;
-	if (!dladdr((void *)SignConstantStringISAs, &info)) return;
-	static const char *const segs[] = {"__DATA_CONST", "__DATA", "__AUTH_CONST", "__AUTH"};
-	for (int si = 0; si < 4; si++) {
-		unsigned long size = 0;
-		uint8_t *sect = getsectiondata((const struct mach_header_64 *)info.dli_fbase, segs[si], "__cfstring", &size);
-		if (!sect || !size) continue;
-		vm_address_t page = (vm_address_t)sect & ~(vm_address_t)(PAGE_SIZE - 1);
-		vm_size_t len = ((vm_address_t)sect + size) - page;
-		if (vm_protect(mach_task_self(), page, len, false, VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY) != KERN_SUCCESS) continue;
-		for (unsigned long off = 0; off + 32 <= size; off += 32) {
-			void **isa = (void **)(sect + off);
-			*isa = ptrauth_sign_unauthenticated(ptrauth_strip(*isa, ptrauth_key_asda), ptrauth_key_asda, ptrauth_blend_discriminator(isa, 0x6AE1));
-		}
-		if (strstr(segs[si], "CONST")) vm_protect(mach_task_self(), page, len, false, VM_PROT_READ);
-	}
-}
-#endif
 
 #define LOG(fmt, ...) os_log(OS_LOG_DEFAULT, "[InteractiveSiri] " fmt, ##__VA_ARGS__)
 
@@ -70,7 +34,6 @@ static NSString *DescribeAddress(const void *addr);
 
 #pragma mark - The switch
 
-#ifndef EXP_PERSISTENT
 static BOOL (*orig_SiriUIDeviceIsPad)(void);
 static BOOL hook_SiriUIDeviceIsPad(void) {
 #ifdef DIAG_LOG
@@ -84,42 +47,17 @@ static BOOL hook_SiriUIDeviceIsPad(void) {
 #endif
 	return YES;
 }
-#else
-static BOOL (*orig_os_feature_enabled_impl)(const char *domain, const char *feature);
-static BOOL hook_os_feature_enabled_impl(const char *domain, const char *feature) {
-	if (domain && feature && !strcmp(domain, "SiriUI") && !strcmp(feature, "persistent_phone")) {
-#ifdef DIAG_LOG
-		DiagLog(@"os_feature_enabled(SiriUI, persistent_phone) from %@: answering YES", DescribeAddress(__builtin_return_address(0)));
-#endif
-		return YES;
-	}
-	return orig_os_feature_enabled_impl(domain, feature);
-}
-#endif
 
 static BOOL sHooked;
 static void TryHook(void) {
 	if (sHooked) return;
-#ifndef EXP_PERSISTENT
 	void *f = dlsym(RTLD_DEFAULT, "SiriUIDeviceIsPad");
 	if (!f) return;
 	MSHookFunction(f, (void *)hook_SiriUIDeviceIsPad, (void **)&orig_SiriUIDeviceIsPad);
 	LOG("hooked SiriUIDeviceIsPad");
-#else
-	void *f = dlsym(RTLD_DEFAULT, "_os_feature_enabled_impl");
-	if (!f) return;
-	MSHookFunction(f, (void *)hook_os_feature_enabled_impl, (void **)&orig_os_feature_enabled_impl);
-	LOG("hooked _os_feature_enabled_impl for SiriUI/persistent_phone");
-#endif
 	sHooked = YES;
 #ifdef DIAG_LOG
-	DiagLog(@"main hook installed (%s)",
-#ifndef EXP_PERSISTENT
-		"SiriUIDeviceIsPad -> YES"
-#else
-		"SiriUI/persistent_phone -> YES"
-#endif
-	);
+	DiagLog(@"main hook installed (SiriUIDeviceIsPad -> YES)");
 #endif
 }
 
